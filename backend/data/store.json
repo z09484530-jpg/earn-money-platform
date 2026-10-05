@@ -1,0 +1,13 @@
+{
+  "user": {
+    "name": "Anna M.",
+    "balance": 1284.5,
+    "withdrawn": 640
+  },
+  "tasks": [
+    { "id": 1, "title": "Complete survey", "payout": 18, "time": "5 min", "badge": "Popular" },
+    { "id": 2, "title": "Watch product demo", "payout": 12, "time": "7 min", "badge": "New" },
+    { "id": 3, "title": "Refer a friend", "payout": 25, "time": "10 min", "badge": "Bonus" },
+    { "id": 4, "title": "App review", "payout": 20, "time": "8 min", "badge": "Top" }
+  ]
+}

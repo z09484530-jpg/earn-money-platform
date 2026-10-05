@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 const stats = [
   { label: 'Users', value: '120K+' },
@@ -7,37 +7,64 @@ const stats = [
   { label: 'Rating', value: '4.9/5' },
 ]
 
-const initialTasks = [
-  { id: 1, title: 'Complete survey', payout: 18, time: '5 min', badge: 'Popular' },
-  { id: 2, title: 'Watch product demo', payout: 12, time: '7 min', badge: 'New' },
-  { id: 3, title: 'Refer a friend', payout: 25, time: '10 min', badge: 'Bonus' },
-  { id: 4, title: 'App review', payout: 20, time: '8 min', badge: 'Top' },
-]
-
 const payouts = ['PayPal', 'Bank card', 'Crypto', 'Mobile wallet']
 
 function App() {
-  const [tasks, setTasks] = useState(initialTasks)
-  const [balance, setBalance] = useState(1284.5)
-  const [withdrawn, setWithdrawn] = useState(640)
+  const [tasks, setTasks] = useState([])
+  const [user, setUser] = useState({ balance: 0, withdrawn: 0 })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [userRes, tasksRes] = await Promise.all([
+          fetch('/api/user'),
+          fetch('/api/tasks'),
+        ])
+
+        const userData = await userRes.json()
+        const tasksData = await tasksRes.json()
+
+        setUser(userData)
+        setTasks(tasksData)
+      } catch (error) {
+        console.error('Failed to load data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [])
 
   const totalEarnings = useMemo(
-    () => tasks.reduce((sum, task) => sum + task.payout, 0),
+    () => tasks.reduce((sum, task) => sum + Number(task.payout || 0), 0),
     [tasks],
   )
 
-  const completeTask = (id) => {
-    setTasks((current) =>
-      current.map((task) =>
-        task.id === id ? { ...task, payout: task.payout + 4, badge: 'Done' } : task,
-      ),
-    )
-    setBalance((current) => Number((current + 4).toFixed(2)))
+  const completeTask = async (id) => {
+    try {
+      const response = await fetch(`/api/tasks/${id}/complete`, { method: 'POST' })
+      const data = await response.json()
+      setTasks(data.tasks)
+      setUser(data.user)
+    } catch (error) {
+      console.error('Task completion failed:', error)
+    }
   }
 
-  const payoutNow = () => {
-    setWithdrawn((current) => Number((current + 25).toFixed(2)))
-    setBalance((current) => Number((current - 25).toFixed(2)))
+  const payoutNow = async () => {
+    try {
+      const response = await fetch('/api/withdraw', { method: 'POST' })
+      const data = await response.json()
+      setUser(data.user)
+    } catch (error) {
+      console.error('Withdrawal failed:', error)
+    }
+  }
+
+  if (loading) {
+    return <div className="loading">Loading TaskEarn Pro...</div>
   }
 
   return (
@@ -98,7 +125,7 @@ function App() {
 
                 <div className="balance-box">
                   <span>Total balance</span>
-                  <strong>${balance.toFixed(2)}</strong>
+                  <strong>${Number(user.balance || 0).toFixed(2)}</strong>
                   <small>+ $52.40 today</small>
                 </div>
 
@@ -109,7 +136,7 @@ function App() {
                         <strong>{task.title}</strong>
                         <span>{task.time}</span>
                       </div>
-                      <em>${task.payout}</em>
+                      <em>${Number(task.payout).toFixed(2)}</em>
                     </div>
                   ))}
                 </div>
@@ -199,7 +226,7 @@ function App() {
                   </div>
                   <h3>{task.title}</h3>
                   <div className="task-bottom">
-                    <strong>${task.payout}</strong>
+                    <strong>${Number(task.payout).toFixed(2)}</strong>
                     <button className="mini-btn" onClick={() => completeTask(task.id)}>
                       Complete
                     </button>
@@ -224,17 +251,17 @@ function App() {
             <div className="wallet-panel">
               <div className="wallet-header">
                 <span>Current balance</span>
-                <strong>${balance.toFixed(2)}</strong>
+                <strong>${Number(user.balance || 0).toFixed(2)}</strong>
               </div>
 
               <div className="summary-boxes">
                 <div>
                   <span>Net earnings</span>
-                  <strong>${totalEarnings.toFixed(2)}</strong>
+                  <strong>${Number(totalEarnings).toFixed(2)}</strong>
                 </div>
                 <div>
                   <span>Withdrawn</span>
-                  <strong>${withdrawn.toFixed(2)}</strong>
+                  <strong>${Number(user.withdrawn || 0).toFixed(2)}</strong>
                 </div>
               </div>
 
